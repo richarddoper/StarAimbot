@@ -1,3 +1,5 @@
+--StarAimbot update v2.1
+
 local WindUI
 do
     local ok, result = pcall(function()
@@ -15,6 +17,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
@@ -26,7 +29,12 @@ local States = {
     ESP = false, Names = false, Tracers = false,
     ESPColor = Color3.fromRGB(255, 60, 120),
     TracerColor = Color3.fromRGB(0, 255, 0),
-    WalkSpeed = 16, JumpPower = 50, FlyEnabled = false, FlySpeed = 50
+    WalkSpeed = 16, JumpPower = 50, FlyEnabled = false, FlySpeed = 50,
+    -- Addons
+    InfJump = false, SpinBot = false, SpinSpeed = 20, Crosshair = false, CrosshairColor = Color3.fromRGB(255, 255, 255),
+    AutoClicker = false, ClickSpeed = 0.1, Noclip = false,
+    -- New Features v2.1
+    TriggerBot = false, RainbowFOV = false
 }
 
 local ESPRegistry = {}
@@ -81,65 +89,88 @@ end
 -- // INTERFACE CONSTRUCTION
 ------------------------------------------------
 local Window = WindUI:CreateWindow({
-    Title = "StarAimbot Revamped",
-    Author = "GuyBoi",
+    Title = "staraimbot",
+    Icon = "star",
+    Author = "Gemini AI",
     Folder = "staraimbot_v2",
-    IconSize = 22,
+    Size = UDim2.fromOffset(420, 310),
+    IconSize = 18,
+    Transparent = true,
     OpenButton = { Enabled = true, Draggable = true }
 })
 
--- Standalone Tabs
+-- Aim Tab
 local AimTab = Window:Tab({ Title = "Aim", Icon = "target" })
-AimTab:Toggle({ Title = "Aim Lock", Callback = function(v) States.AimLock = v end })
-AimTab:Toggle({ Title = "Visible Check", Callback = function(v) States.VisibleCheck = v end })
-AimTab:Toggle({ Title = "Show FOV Circle", Callback = function(v) States.ShowFOV = v end })
-AimTab:Toggle({ Title = "Team Check", Callback = function(v) States.TeamCheck = v end })
+AimTab:Section({ Title = "Aim Tab", Icon = "crosshair" })
+AimTab:Toggle({ Title = "Aim Lock", Desc = "Lock onto targets", Callback = function(v) States.AimLock = v end })
+AimTab:Toggle({ Title = "Trigger Bot", Desc = "Auto-shoot when hovering enemy", Callback = function(v) States.TriggerBot = v end })
+AimTab:Toggle({ Title = "Visible Check", Desc = "Targets behind walls won't lock", Callback = function(v) States.VisibleCheck = v end })
+AimTab:Toggle({ Title = "Show FOV Circle", Desc = "Visualize your range", Callback = function(v) States.ShowFOV = v end })
+AimTab:Toggle({ Title = "Team Check", Desc = "Ignore teammates", Callback = function(v) States.TeamCheck = v end })
+AimTab:Toggle({ Title = "Spin Bot", Desc = "Rotate character rapidly", Callback = function(v) States.SpinBot = v end })
 
+-- Aim Settings Tab
 local AimSettingsTab = Window:Tab({ Title = "Aim Settings", Icon = "settings-2" })
+AimSettingsTab:Section({ Title = "Aim Settings Tab", Icon = "sliders-vertical" })
 AimSettingsTab:Slider({ Title = "Smoothing", Step = 0.01, Value = { Min = 0.05, Max = 1, Default = 0.45 }, Callback = function(v) States.AimSpeed = v end })
 AimSettingsTab:Slider({ Title = "FOV Radius", Step = 1, Value = { Min = 10, Max = 800, Default = 150 }, Callback = function(v) States.FOVRadius = v end })
+AimSettingsTab:Toggle({ Title = "Rainbow FOV", Desc = "Cycle FOV Colors", Callback = function(v) States.RainbowFOV = v end })
+AimSettingsTab:Slider({ Title = "Spin Speed", Step = 1, Value = { Min = 5, Max = 100, Default = 20 }, Callback = function(v) States.SpinSpeed = v end })
 AimSettingsTab:Colorpicker({ Title = "Adjustment Radius Color", Default = States.FOVColor, Callback = function(color) States.FOVColor = color end })
 
+-- Visuals Tab
 local VisualsTab = Window:Tab({ Title = "Visuals", Icon = "eye" })
-VisualsTab:Toggle({ Title = "Enable ESP", Callback = function(v) States.ESP = v end })
-VisualsTab:Toggle({ Title = "Show Names", Callback = function(v) States.Names = v end })
-VisualsTab:Toggle({ Title = "Show Tracers", Callback = function(v) States.Tracers = v end })
+VisualsTab:Section({ Title = "Visuals Tab", Icon = "scan-eye" })
+VisualsTab:Toggle({ Title = "Enable ESP", Desc = "See players through walls", Callback = function(v) States.ESP = v end })
+VisualsTab:Toggle({ Title = "Show Names", Desc = "Draw username tags", Callback = function(v) States.Names = v end })
+VisualsTab:Toggle({ Title = "Show Tracers", Desc = "Draw snaplines to players", Callback = function(v) States.Tracers = v end })
+VisualsTab:Toggle({ Title = "Custom Crosshair", Desc = "Draw a center dot", Callback = function(v) States.Crosshair = v end })
 
+-- Visuals Settings Tab
 local VisualsSettingsTab = Window:Tab({ Title = "Visuals Settings", Icon = "palette" })
+VisualsSettingsTab:Section({ Title = "Visuals Settings Tab", Icon = "paintbrush" })
 VisualsSettingsTab:Colorpicker({ Title = "ESP Color", Default = States.ESPColor, Callback = function(color) States.ESPColor = color end })
 VisualsSettingsTab:Colorpicker({ Title = "Tracer Color", Default = States.TracerColor, Callback = function(color) States.TracerColor = color end })
+VisualsSettingsTab:Colorpicker({ Title = "Crosshair Color", Default = States.CrosshairColor, Callback = function(color) States.CrosshairColor = color end })
 
--- Others Section (Player & Misc)
+-- Player Tab
 local OthersSection = Window:Section({ Title = "Others" })
-
 local PlayerTab = OthersSection:Tab({ Title = "Player", Icon = "user" })
+PlayerTab:Section({ Title = "Player Tab", Icon = "user-cog" })
 PlayerTab:Slider({ Title = "WalkSpeed", Step = 1, Value = { Min = 16, Max = 300, Default = 16 }, Callback = function(v) States.WalkSpeed = v end })
 PlayerTab:Slider({ Title = "JumpPower", Step = 1, Value = { Min = 50, Max = 500, Default = 50 }, Callback = function(v) States.JumpPower = v end })
-PlayerTab:Toggle({ Title = "Enable Fly", Callback = function(v) States.FlyEnabled = v end })
+PlayerTab:Toggle({ Title = "Infinite Jump", Desc = "Jump mid-air", Callback = function(v) States.InfJump = v end })
+PlayerTab:Toggle({ Title = "Enable Fly", Desc = "Move through the air", Callback = function(v) States.FlyEnabled = v end })
+PlayerTab:Slider({ Title = "Fly Speed", Step = 1, Value = { Min = 10, Max = 500, Default = 50 }, Callback = function(v) States.FlySpeed = v end })
+PlayerTab:Toggle({ Title = "Noclip", Desc = "Walk through walls", Callback = function(v) States.Noclip = v end })
 
+-- Misc Tab
 local MiscTab = OthersSection:Tab({ Title = "Misc", Icon = "box" })
+MiscTab:Section({ Title = "Misc Tab", Icon = "package" })
 local ConfigManager = Window.ConfigManager
 local ConfigName = "default"
 
+MiscTab:Toggle({ Title = "Auto Clicker", Desc = "Automatically clicks your mouse", Callback = function(v) States.AutoClicker = v end })
+MiscTab:Slider({ Title = "Click Speed", Step = 0.01, Value = { Min = 0.01, Max = 1, Default = 0.1 }, Callback = function(v) States.ClickSpeed = v end })
 MiscTab:Input({ Title = "Config Name", Callback = function(v) ConfigName = v end })
-MiscTab:Button({ Title = "Save Settings", Callback = function()
+MiscTab:Button({ Title = "Save Settings", Desc = "Save current config to file", Callback = function()
     Window.CurrentConfig = ConfigManager:Config(ConfigName)
     Window.CurrentConfig:Save()
     WindUI:Notify({Title = "Success", Content = "Config Saved"})
 end })
-MiscTab:Button({ Title = "Load Settings", Callback = function()
+MiscTab:Button({ Title = "Load Settings", Desc = "Load config from file", Callback = function()
     Window.CurrentConfig = ConfigManager:CreateConfig(ConfigName)
     Window.CurrentConfig:Load()
     WindUI:Notify({Title = "Success", Content = "Config Loaded"})
 end })
-MiscTab:Button({ Title = "Server Hop", Callback = function()
+MiscTab:Button({ Title = "Server Hop", Desc = "Find a different server", Callback = function()
     local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")).data
     for _, s in pairs(servers) do if s.playing < s.maxPlayers and s.id ~= game.JobId then TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id) end end
 end })
-MiscTab:Button({ Title = "Rejoin Server", Callback = function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end })
+MiscTab:Button({ Title = "Rejoin Server", Desc = "Refresh current server", Callback = function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end })
 
 ------------------------------------------------
--- // FOV CIRCLE SYSTEM
+-- // OVERLAYS
 ------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "StarAimbot_Overlay"
@@ -158,6 +189,10 @@ UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 local UICorner = Instance.new("UICorner", FOVFrame)
 UICorner.CornerRadius = UDim.new(1, 0)
 
+local Dot = Instance.new("Frame", ScreenGui)
+Dot.Size, Dot.AnchorPoint, Dot.BackgroundColor3, Dot.Visible = UDim2.fromOffset(4, 4), Vector2.new(0.5, 0.5), Color3.new(1,1,1), false
+Instance.new("UICorner", Dot).CornerRadius = UDim.new(1,0)
+
 ------------------------------------------------
 -- // RENDER LOOP
 ------------------------------------------------
@@ -171,23 +206,43 @@ RunService.RenderStepped:Connect(function()
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     local root = char and char:FindFirstChild("HumanoidRootPart")
 
-    -- FOV
+    -- FOV / Crosshair
     FOVFrame.Visible = States.ShowFOV
     if States.ShowFOV then
         FOVFrame.Position = UDim2.fromOffset(screenCenter.X, screenCenter.Y)
         FOVFrame.Size = UDim2.fromOffset(States.FOVRadius * 2, States.FOVRadius * 2)
-        UIStroke.Color = States.FOVColor
+        
+        if States.RainbowFOV then
+            UIStroke.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+        else
+            UIStroke.Color = States.FOVColor
+        end
     end
+    Dot.Visible, Dot.Position, Dot.BackgroundColor3 = States.Crosshair, UDim2.fromOffset(screenCenter.X, screenCenter.Y), States.CrosshairColor
 
     -- Character
-    if hum then hum.WalkSpeed = States.WalkSpeed hum.JumpPower = States.JumpPower end
+    if hum then 
+        hum.WalkSpeed = States.WalkSpeed 
+        hum.JumpPower = States.JumpPower 
+    end
+    
     if States.FlyEnabled and root then
         flyBody.Parent = root
         flyBody.Velocity = Camera.CFrame.LookVector * States.FlySpeed
     else flyBody.Parent = nil end
+    
+    if States.SpinBot and root then 
+        root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(States.SpinSpeed), 0) 
+    end
+
+    if States.Noclip and char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
 
     -- Aim Assist Logic
-    if States.AimLock then
+    if States.AimLock or States.TriggerBot then
         local target, minDistance = nil, States.FOVRadius
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild(States.TargetPart) then
@@ -202,8 +257,14 @@ RunService.RenderStepped:Connect(function()
                 end
             end
         end
+
         if target then
-            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Character[States.TargetPart].Position), States.AimSpeed)
+            if States.AimLock then
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Character[States.TargetPart].Position), States.AimSpeed)
+            end
+            if States.TriggerBot and minDistance < 20 then 
+                mouse1click()
+            end
         end
     end
 
@@ -226,7 +287,29 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- Addon Connections
+UserInputService.JumpRequest:Connect(function()
+    if States.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
+end)
+
+-- Auto Clicker Loop
+task.spawn(function()
+    while task.wait() do
+        if States.AutoClicker then
+            mouse1click()
+            task.wait(States.ClickSpeed)
+        end
+    end
+end)
+
 for _, p in ipairs(Players:GetPlayers()) do createTracer(p) setupESP(p) end
 Players.PlayerAdded:Connect(function(p) createTracer(p) setupESP(p) end)
 
-WindUI:Notify({ Title = "staraimbot", Content = "Full Logic Restored", Icon = "check" })
+pcall(function()
+    Window.CurrentConfig = ConfigManager:CreateConfig("default")
+    Window.CurrentConfig:Load()
+end)
+
+WindUI:Notify({ Title = "staraimbot", Content = "thank you for using StarAimbot", Icon = "star" })
