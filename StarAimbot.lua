@@ -89,9 +89,9 @@ end
 -- // INTERFACE CONSTRUCTION
 ------------------------------------------------
 local Window = WindUI:CreateWindow({
-    Title = "staraimbot",
+    Title = "STAR AIMBOT v2.1",
     Icon = "star",
-    Author = "Gemini AI",
+    Author = "Guyboi",
     Folder = "staraimbot_v2",
     Size = UDim2.fromOffset(420, 310),
     IconSize = 18,
