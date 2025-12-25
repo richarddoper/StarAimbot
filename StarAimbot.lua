@@ -312,4 +312,4 @@ pcall(function()
     Window.CurrentConfig:Load()
 end)
 
-WindUI:Notify({ Title = "staraimbot", Content = "thank you for using StarAimbot", Icon = "star" })
+WindUI:Notify({ Title = "STAR AIMBOT v2.1", Content = "thank you for using StarAimbot", Icon = "star" })
